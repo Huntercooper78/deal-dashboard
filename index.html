@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Deal Screen</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  /* layout: inputs rail on the left, sale-date groups of property cards on the right; stacks under 900px */
+  --bg: #f6f5f1; --panel: #ffffff; --ink: #1d2320; --muted: #5d665f; --line: #dcd9d0;
+  --accent: #1f5c4d; --accent-ink: #ffffff; --changed: #b4690e;
+  --pass-bg: #e3f1e6; --pass-ink: #1b5e2f; --rev-bg: #fbefd2; --rev-ink: #7a4d00; --fail-bg: #f8e1de; --fail-ink: #8c2a21;
+  --font: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #141816; --panel: #1c211f; --ink: #e8ece9; --muted: #9aa59d; --line: #2e3531;
+    --accent: #5fc2a6; --accent-ink: #0f1a16; --changed: #e0a24a;
+    --pass-bg: #1d3a28; --pass-ink: #9fdcb0; --rev-bg: #3d3216; --rev-ink: #f0cd7c; --fail-bg: #43211e; --fail-ink: #f0a79f;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #141816; --panel: #1c211f; --ink: #e8ece9; --muted: #9aa59d; --line: #2e3531;
+  --accent: #5fc2a6; --accent-ink: #0f1a16; --changed: #e0a24a;
+  --pass-bg: #1d3a28; --pass-ink: #9fdcb0; --rev-bg: #3d3216; --rev-ink: #f0cd7c; --fail-bg: #43211e; --fail-ink: #f0a79f;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--ink); font: 15px/1.5 var(--font); padding: 24px 16px 48px; }
+.wrap { max-width: 1160px; margin: 0 auto; }
+h1 { font-size: 26px; font-weight: 600; margin: 0 0 2px; text-wrap: balance; }
+h2 { font-size: 13px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); margin: 0 0 10px; }
+.sub { color: var(--muted); margin: 0 0 18px; }
+.tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-bottom: 18px; }
+.tile { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; }
+.tile .k { font-size: 12px; color: var(--muted); }
+.tile .v { font-size: 26px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.tile.pass { background: var(--pass-bg); border-color: transparent; } .tile.pass .k, .tile.pass .v { color: var(--pass-ink); }
+.tile.rev { background: var(--rev-bg); border-color: transparent; } .tile.rev .k, .tile.rev .v { color: var(--rev-ink); }
+.tile.fail { background: var(--fail-bg); border-color: transparent; } .tile.fail .k, .tile.fail .v { color: var(--fail-ink); }
+.cols { display: grid; grid-template-columns: 320px minmax(0, 1fr); gap: 18px; align-items: start; }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 16px; }
+.group { margin-bottom: 18px; }
+.field { display: grid; grid-template-columns: 1fr 112px; gap: 4px 10px; align-items: center; margin-bottom: 10px; }
+.field label { font-size: 14px; }
+.field .help { grid-column: 1 / -1; font-size: 12px; color: var(--muted); margin-top: -2px; }
+.inp { display: flex; align-items: center; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); padding: 0 8px; }
+.inp:focus-within { outline: 2px solid var(--accent); outline-offset: 1px; }
+.inp span { color: var(--muted); font-size: 13px; }
+.inp input { width: 100%; min-width: 0; border: 0; background: transparent; color: var(--ink); font: inherit; padding: 6px 4px; text-align: right; font-variant-numeric: tabular-nums; }
+.inp input:focus { outline: none; }
+.inp.changed { border-color: var(--changed); }
+.inp.bad { border-color: var(--fail-ink); }
+.town { display: grid; grid-template-columns: 20px 1fr 112px; gap: 8px 10px; align-items: center; margin-bottom: 8px; }
+.town .tag { grid-column: 2 / -1; font-size: 12px; color: var(--muted); margin-top: -4px; }
+.town .tag.ph { color: var(--changed); }
+.town input[type=checkbox] { width: 16px; height: 16px; accent-color: var(--accent); }
+.err { color: var(--fail-ink); font-size: 13px; min-height: 18px; margin: 0 0 8px; }
+.btns { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+button { font: inherit; font-size: 14px; border-radius: 6px; padding: 7px 12px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); cursor: pointer; }
+button:hover { border-color: var(--muted); }
+button:focus-visible, select:focus-visible, textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.note { font-size: 12px; color: var(--muted); margin: 8px 0 0; }
+.bar { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; margin: 0 0 12px; font-size: 14px; }
+.bar label { display: flex; align-items: center; gap: 6px; }
+select { font: inherit; font-size: 14px; background: var(--bg); color: var(--ink); border: 1px solid var(--line); border-radius: 6px; padding: 5px 8px; }
+.sale { margin: 18px 0 8px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 6px; border-bottom: 1px solid var(--line); padding-bottom: 6px; }
+.sale:first-of-type { margin-top: 0; }
+.sale .d { font-size: 16px; font-weight: 600; }
+.sale .c { font-size: 13px; color: var(--muted); }
+.card { border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; margin: 0 0 10px; background: var(--panel); }
+.card.out { opacity: .6; }
+.top { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px 16px; align-items: start; }
+.addr { font-weight: 600; font-size: 16px; }
+.meta { font-size: 12px; color: var(--muted); }
+.meta a { color: var(--accent); }
+.big { text-align: right; }
+.big .lab { font-size: 12px; color: var(--muted); }
+.big .num { font-size: 24px; font-weight: 600; font-variant-numeric: tabular-nums; line-height: 1.15; }
+.big .num.PASS { color: var(--pass-ink); } .big .num.REVIEW { color: var(--rev-ink); } .big .num.FAIL { color: var(--fail-ink); }
+.facts { display: flex; flex-wrap: wrap; gap: 4px 18px; margin: 8px 0 0; font-size: 13px; font-variant-numeric: tabular-nums; }
+.facts b { font-weight: 500; }
+.pos { color: var(--pass-ink); font-weight: 500; } .neg { color: var(--fail-ink); font-weight: 500; } .thin { color: var(--rev-ink); font-weight: 500; }
+.pill { display: inline-block; font-size: 12px; font-weight: 500; padding: 2px 8px; border-radius: 6px; margin-right: 8px; vertical-align: 1px; }
+.pill.PASS { background: var(--pass-bg); color: var(--pass-ink); }
+.pill.REVIEW { background: var(--rev-bg); color: var(--rev-ink); }
+.pill.FAIL { background: var(--fail-bg); color: var(--fail-ink); }
+.mine { display: grid; grid-template-columns: 170px minmax(0, 1fr); gap: 8px 10px; margin-top: 10px; align-items: end; }
+.mine label { font-size: 12px; color: var(--muted); display: block; margin-bottom: 2px; }
+.mine .inp input { text-align: right; }
+.mine textarea { width: 100%; font: inherit; font-size: 14px; resize: vertical; min-height: 34px; background: var(--bg); color: var(--ink); border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; }
+.mine select { width: 100%; }
+ol.steps { margin: 8px 0 10px 18px; padding: 0; font-size: 14px; }
+.day { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 6px; padding: 4px 0; font-size: 14px; }
+.day button { font-size: 12px; padding: 3px 8px; }
+details.wi { margin-top: 10px; border-top: 1px dashed var(--line); padding-top: 8px; }
+.wigrid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px 10px; margin: 10px 0; }
+.wigrid label { font-size: 12px; color: var(--muted); display: block; margin-bottom: 2px; }
+details { margin-top: 14px; } summary { cursor: pointer; font-size: 13px; color: var(--muted); }
+textarea.json { width: 100%; height: 200px; margin-top: 8px; font: 12px/1.4 ui-monospace, Menlo, Consolas, monospace; background: var(--bg); color: var(--ink); border: 1px solid var(--line); border-radius: 6px; padding: 8px; }
+.empty { color: var(--muted); padding: 12px 0; }
+@media (max-width: 900px) { .wigrid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .cols { grid-template-columns: minmax(0, 1fr); } .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } .mine { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } .mine .wide { grid-column: 1 / -1; } .top { grid-template-columns: minmax(0, 1fr); } .big { text-align: left; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Deal Screen</h1>
+  <p class="sub" id="sub"></p>
+  <div class="tiles" id="tiles"></div>
+
+  <div class="cols">
+    <div class="panel" id="inputs">
+      <h2>Inputs</h2>
+      <div id="groups"></div>
+      <div class="group">
+        <h2>Towns and rent</h2>
+        <div id="towns"></div>
+        <p class="note">Rent is for a 3-bedroom house. Checked towns are in your buy box. Set a different rent or repairs on any one house in its card.</p>
+      </div>
+      <p class="err" id="err" role="alert"></p>
+      <div class="btns">
+        <button class="primary" id="dl" hidden>Download code and inputs</button>
+        <button id="copy">Copy buybox.json</button>
+        <button id="reset">Reset to defaults</button>
+      </div>
+      <p class="note" id="status" aria-live="polite"></p>
+      <details><summary>Show buybox.json</summary><textarea class="json" id="json" readonly aria-label="Current buybox.json"></textarea></details>
+    </div>
+
+    <div>
+      <div class="panel" id="addday" style="margin-bottom:14px">
+        <h2>Sale days</h2>
+        <div id="days"></div>
+        <details id="adddet"><summary>Add or refresh a sale day</summary>
+          <ol class="steps">
+            <li>Open the sale day yourself on the auction site. Use the <a href="https://cuyahoga.sheriffsaleauction.ohio.gov/index.cfm?zaction=AUCTION&amp;Zmethod=PREVIEW" target="_blank" rel="noopener noreferrer">auction site</a> and pick a date from its calendar.</li>
+            <li>Click your <b>Grab sale page</b> bookmark (set up once, below). A small box appears on the page. Click <b>Copy</b> in it.</li>
+            <li>Paste here and press <b>Add to dashboard</b>.</li>
+          </ol>
+          <textarea class="json" id="paste" aria-label="Pasted sale page text" placeholder="Paste the copied sale page text here" style="height:90px"></textarea>
+          <div class="btns"><button class="primary" id="addbtn">Add to dashboard</button></div>
+          <p class="note" id="addmsg" aria-live="polite"></p>
+          <p class="note"><b>One-time bookmark setup:</b> press <b>Copy bookmark code</b>, make a new bookmark of any page in your browser, edit its address, and paste this code in as the address. Name it Grab sale page. (Safari: Bookmarks, Add Bookmark, then Edit Address.) You can also try dragging <a id="bmlink" href="#">Grab sale page</a> to your bookmarks bar.</p>
+          <div class="btns"><button id="copybm">Copy bookmark code</button></div>
+          <p class="note"><b>Move or back up your data:</b> Copy my data gives you text with your sale days, notes and inputs. Paste it into the box and press Load my data on another device.</p>
+          <div class="btns"><button id="copydata">Copy my data</button><button id="loaddata">Load my data from the box above</button></div>
+          <p class="note">This reads the page you already have open. It does not visit the auction site by itself. Keep the listings for your own use.</p>
+        </details>
+      </div>
+      <div class="panel">
+        <div class="bar">
+          <label>Show <select id="mode"><option value="auction">Auction (sheriff sale)</option><option value="pre">Pre-foreclosure</option></select></label>
+          <label id="winwrap">Sales in the next
+            <select id="win"><option value="7">7 days</option><option value="14" selected>14 days</option><option value="30">30 days</option><option value="9999">all</option></select>
+          </label>
+          <label><input type="checkbox" id="showall"> <span id="showlabel">Also show listings outside my towns</span></label>
+        </div>
+        <div id="list"></div>
+        <p class="note" id="foot"></p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script type="application/json" id="files">{}</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script>
+function paymentFactor(rate, years) {
+  const n = years * 12, r = rate / 12;
+  return r === 0 ? 1 / n : r / (1 - Math.pow(1 + r, -n));
+}
+function toTerms(bb) {
+  return {
+    down: bb.financing.down_pct, rate: bb.financing.rate, years: bb.financing.years,
+    tax: bb.monthly_costs.tax, ins: bb.monthly_costs.insurance, reserve: bb.monthly_costs.reserve_pct_of_rent,
+    dscr: bb.dscr_target, closing: bb.closing_costs
+  };
+}
+function maxAllIn(rent, t) {
+  if (!(rent > 0)) return 0;
+  const maxPi = rent / t.dscr - t.tax - t.ins - t.reserve * rent;
+  if (maxPi <= 0) return 0;
+  return (maxPi / paymentFactor(t.rate, t.years)) / (1 - t.down);
+}
+function maxBid(rent, rehab, t, cap) {
+  let a = maxAllIn(rent, t);
+  if (cap != null) a = Math.min(a, cap);
+  return Math.max(0, a - rehab - t.closing);
+}
+function rentNeeded(allIn, t) {
+  const fixed = (1 - t.down) * allIn * paymentFactor(t.rate, t.years) + t.tax + t.ins;
+  const denom = 1 / t.dscr - t.reserve;
+  return denom <= 0 ? Infinity : fixed / denom;
+}
+function withOver(bb, o) {
+  if (!o) return bb;
+  const b = JSON.parse(JSON.stringify(bb));
+  if (typeof o.tax === 'number') b.monthly_costs.tax = o.tax;
+  if (typeof o.ins === 'number') b.monthly_costs.insurance = o.ins;
+  if (typeof o.down === 'number') b.financing.down_pct = o.down / 100;
+  if (typeof o.rate === 'number') b.financing.rate = o.rate / 100;
+  if (typeof o.closing === 'number') b.closing_costs = o.closing;
+  if (typeof o.dscr === 'number' && o.dscr > 0) b.dscr_target = o.dscr;
+  return b;
+}
+function screenOne(l, bb0, over) {
+  const bb = withOver(bb0, over);
+  const t = toTerms(bb);
+  const r = { l, verdict: 'FAIL', reasons: [], rent: null, rehab: null, maxBid: null, headroom: null, rentNeeded: null };
+  const fmt = n => '$' + Math.round(n).toLocaleString('en-US');
+  if (!l.city) { r.verdict = 'REVIEW'; r.reasons.push('missing city; cannot place in buy box'); return r; }
+  if (bb.excluded_areas.includes(l.city)) { r.reasons.push('excluded area: ' + l.city); return r; }
+  if (!bb.areas.includes(l.city)) { r.reasons.push('outside your areas: ' + l.city); return r; }
+  if ((l.status || '').toUpperCase() !== 'ACTIVE') { r.reasons.push('status is ' + l.status + ', not ACTIVE'); return r; }
+  const o = over || {};
+  const rehab = (typeof o.rehab === 'number' && o.rehab >= 0) ? o.rehab : bb.default_rehab;
+  const rent = (typeof o.rent === 'number' && o.rent > 0) ? o.rent : bb.conservative_rent_3br[l.city];
+  r.rehab = rehab; r.rent = rent === undefined ? null : rent;
+  if (rent === undefined) { r.verdict = 'REVIEW'; r.reasons.push('no rent set for ' + l.city); return r; }
+  r.maxBid = maxBid(rent, rehab, t, bb.max_all_in);
+  if (l.opening_bid == null || l.opening_bid <= 0) {
+    r.verdict = 'REVIEW'; r.reasons.push('opening bid missing or $0; check the listing'); return r;
+  }
+  r.headroom = r.maxBid - l.opening_bid;
+  r.rentNeeded = rentNeeded(l.opening_bid + rehab + t.closing, t);
+  if (l.opening_bid < bb.min_price) { r.verdict = 'REVIEW'; r.reasons.push('opening bid under your minimum price'); return r; }
+  if (r.headroom < 0) { r.reasons.push('opening bid is ' + fmt(-r.headroom) + ' over your max bid'); return r; }
+  r.verdict = 'PASS';
+  r.reasons.push(fmt(r.headroom) + ' of room under your max bid');
+  if (r.headroom < 10000) { r.verdict = 'REVIEW'; r.reasons.push('thin: a competing bid or extra repair breaks it'); }
+  return r;
+}
+function screenPre(l, bb0, over) {
+  const bb = withOver(bb0, over), o = over || {}, t = toTerms(bb);
+  const r = { l, verdict: 'FAIL', reasons: [], rent: null, rehab: null, maxBid: null, discount: null, rentNeeded: null };
+  const fmt = n => '$' + Math.round(n).toLocaleString('en-US');
+  if (!l.city) { r.verdict = 'REVIEW'; r.reasons.push('missing city'); return r; }
+  if (bb.excluded_areas.includes(l.city)) { r.reasons.push('excluded area: ' + l.city); return r; }
+  if (!bb.areas.includes(l.city)) { r.reasons.push('outside your areas: ' + l.city); return r; }
+  const base = bb.conservative_rent_3br[l.city];
+  if (base === undefined && !(o.rent > 0)) { r.verdict = 'REVIEW'; r.reasons.push('no rent set for ' + l.city); return r; }
+  const f = (bb.bed_rent_factor || {})[String(Math.min(5, Math.max(1, Math.round(l.beds || 3))))] || 1;
+  r.stockRent = base === undefined ? null : Math.round(base * f / 25) * 25;
+  r.rent = (typeof o.rent === 'number' && o.rent > 0) ? o.rent : r.stockRent;
+  r.rehab = (typeof o.rehab === 'number' && o.rehab >= 0) ? o.rehab : bb.default_rehab;
+  r.maxBid = maxBid(r.rent, r.rehab, t, bb.max_all_in);
+  const pf = bb.pre_foreclosure || { pass_discount: 0.15, review_discount: 0.30 };
+  if (!(l.est_value > 0)) { r.verdict = 'REVIEW'; r.reasons.push('no estimated value to compare against'); return r; }
+  r.discount = 1 - r.maxBid / l.est_value;
+  r.rentNeeded = rentNeeded(Math.min(l.est_value, bb.max_all_in - r.rehab - t.closing) + r.rehab + t.closing, t);
+  if (r.discount <= pf.pass_discount) { r.verdict = 'PASS'; r.reasons.push('works at ' + Math.round(Math.max(0, r.discount) * 100) + '% or less below the estimated value'); }
+  else if (r.discount <= pf.review_discount) { r.verdict = 'REVIEW'; r.reasons.push('needs about ' + Math.round(r.discount * 100) + '% below the estimated value'); }
+  else r.reasons.push('needs about ' + Math.round(r.discount * 100) + '% below the estimated value, a deep discount');
+  return r;
+}
+function screenAll(listings, bb, overrides) {
+  const order = { PASS: 0, REVIEW: 1, FAIL: 2 };
+  return listings.map(l => screenOne(l, bb, overrides && overrides[l.case_no])).sort((a, b) =>
+    order[a.verdict] - order[b.verdict] ||
+    (b.headroom == null ? -1e12 : b.headroom) - (a.headroom == null ? -1e12 : a.headroom));
+}
+if (typeof module !== 'undefined') module.exports = { screenPre, withOver, paymentFactor, maxAllIn, maxBid, rentNeeded, screenOne, screenAll, toTerms };
+
+</script>
+<script>
+// Parses the visible text of a RealForeclose "Preview Items For Sale" page. Mirrors ingest.py parse_listings.
+var MONTHS = { january: 1, february: 2, march: 3, april: 4, may: 5, june: 6, july: 7, august: 8, september: 9, october: 10, november: 11, december: 12 };
+function pad2(n) { return (n < 10 ? '0' : '') + n; }
+function toIso(s) {
+  var m = /(\d{1,2})\/(\d{1,2})\/(\d{4})/.exec(s || '');
+  if (m) return m[3] + '-' + pad2(+m[1]) + '-' + pad2(+m[2]);
+  m = /^\s*(\d{4})-(\d{2})-(\d{2})/.exec(s || '');
+  return m ? m[0].trim() : null;
+}
+function moneyOf(s) {
+  var m = /\$?\s*([\d,]+(?:\.\d+)?)/.exec(s || '');
+  if (!m) return null;
+  var v = parseFloat(m[1].replace(/,/g, ''));
+  return isNaN(v) ? null : v;
+}
+function fieldOf(block, label) {
+  var i = block.indexOf(label);
+  if (i < 0) return null;
+  var m = /^\s*:?\s*([^\n]+)/.exec(block.slice(i + label.length));
+  return m ? m[1].trim() : null;
+}
+function headingDate(text) {
+  var m = /Preview Items For Sale\s*\n\s*(?:[A-Za-z]+\s+)?([A-Za-z]+)\s+(\d{1,2}),\s*(\d{4})/.exec(text);
+  if (!m || !MONTHS[m[1].toLowerCase()]) return null;
+  return m[3] + '-' + pad2(MONTHS[m[1].toLowerCase()]) + '-' + pad2(+m[2]);
+}
+function parseListings(text) {
+  var starts = [], re = /Case Status:/g, mm;
+  while ((mm = re.exec(text))) starts.push(mm.index);
+  var out = [], pageDay = headingDate(text);
+  starts.forEach(function (s, i) {
+    var e = i + 1 < starts.length ? starts[i + 1] : text.length;
+    var block = text.slice(s, e);
+    var pre = text.slice(Math.max(0, s - 100), s);
+    var when = /(\d{1,2}\/\d{1,2}\/\d{4}\s+\d{1,2}:\d{2}\s*[AP]M\s*\w*)/.exec(pre.slice(-60));
+    var l = { case_no: null, parcel: null, address: null, city: null, zip5: null, appraised: null, opening_bid: null, deposit: null,
+      sale_when: when ? when[1].trim() : null, sale_date: null, status: fieldOf(block, 'Case Status') };
+    l.sale_date = toIso(l.sale_when);
+    var ast = /Auction Status\s*\n\s*([^\n]+)\s*\n\s*$/.exec(pre);
+    if (ast) {
+      var v = ast[1].trim().toUpperCase();
+      l.status = v.indexOf('CANCEL') >= 0 ? 'CANCELED' : v.indexOf('POSTPONE') >= 0 ? 'POSTPONED' : v;
+      l.sale_when = null; l.sale_date = null;
+    }
+    var c = fieldOf(block, 'Case #');
+    if (c) l.case_no = c.replace(/\s*\(\d+\)\s*$/, '').trim();
+    l.parcel = fieldOf(block, 'Parcel ID');
+    var a = /Property Address:\s*(.+?)\n\s*(.+?)\s*,\s*(\d{5,9})/.exec(block);
+    if (a) { l.address = a[1].trim(); l.city = a[2].trim().toUpperCase(); l.zip5 = a[3].slice(0, 5); }
+    else l.address = fieldOf(block, 'Property Address');
+    l.appraised = moneyOf(fieldOf(block, 'Appraised Value'));
+    l.opening_bid = moneyOf(fieldOf(block, 'Opening Bid'));
+    l.deposit = moneyOf(fieldOf(block, 'Deposit Requirement'));
+    if (l.status === 'ACTIVE' && !l.sale_date && pageDay) l.sale_date = pageDay;
+    out.push(l);
+  });
+  return { listings: dedupeListings(out), pageDay: pageDay };
+}
+function dedupeListings(ls) {
+  var seen = {}, out = [];
+  ls.forEach(function (l) { var k = l.case_no + '|' + l.parcel; if (!seen[k]) { seen[k] = 1; out.push(l); } });
+  return out;
+}
+if (typeof module !== 'undefined') module.exports = { parseListings: parseListings, headingDate: headingDate, dedupeListings: dedupeListings };
+
+</script>
+<script>
+const DEFAULTS = {"areas":["PARMA","PARMA HEIGHTS","STRONGSVILLE","INDEPENDENCE","BROOKLYN HEIGHTS","AKRON"],"excluded_areas":["EAST CLEVELAND"],"min_price":50000,"max_all_in":190000,"dscr_target":1.2,"financing":{"down_pct":0.25,"rate":0.07,"years":30},"monthly_costs":{"tax":270,"insurance":100,"reserve_pct_of_rent":0.1},"closing_costs":4000,"default_rehab":25000,"conservative_rent_3br":{"PARMA":1600,"PARMA HEIGHTS":1650,"STRONGSVILLE":1800,"INDEPENDENCE":1800,"BROOKLYN HEIGHTS":1700,"AKRON":1250},"notes":"Rents are deliberately below market averages (room for error). Akron/Strongsville/Independence rents are placeholders, not researched. Replace before trusting results there. | bed_rent_factor and pre_foreclosure thresholds are placeholders (my guesses, not researched).","bed_rent_factor":{"1":0.7,"2":0.85,"3":1.0,"4":1.1,"5":1.15},"pre_foreclosure":{"pass_discount":0.15,"review_discount":0.3}};
+const SEED = [];
+let LISTINGS = SEED;
+let SALES = {};
+const META = {"captured":"2026-11-23"};
+const PRE = {"captured":null,"listings":[]};
+const FILES = JSON.parse(document.getElementById('files').textContent);
+const RENT_SOURCE = { 'PARMA': 'from rental comps, set below the average', 'PARMA HEIGHTS': 'placeholder, not researched', 'STRONGSVILLE': 'placeholder, not researched', 'INDEPENDENCE': 'placeholder, not researched', 'BROOKLYN HEIGHTS': 'placeholder, not researched', 'AKRON': 'placeholder, not researched' };
+const STATUSES = ['New', 'Looking at it', 'Title ordered', 'Drove by', 'Bidding', 'Passed'];
+let bb = JSON.parse(JSON.stringify(DEFAULTS));
+let mineState = {};
+let deadCount = 0;
+
+const GROUPS = [
+  { title: 'Rules', fields: [
+    { key: 'dscr', label: 'Rent coverage target', help: 'Rent must be at least this multiple of your monthly costs.', unit: 'x', step: 0.05, get: b => b.dscr_target, set: (b, v) => { b.dscr_target = v; }, min: 0.1 },
+    { key: 'cap', label: 'Most you will spend', help: 'Price plus repairs plus closing.', unit: '$', step: 1000, get: b => b.max_all_in, set: (b, v) => { b.max_all_in = v; }, min: 0 },
+    { key: 'minp', label: 'Lowest price to consider', help: 'Cheaper than this gets flagged for review.', unit: '$', step: 1000, get: b => b.min_price, set: (b, v) => { b.min_price = v; }, min: 0 },
+    { key: 'rehab', label: 'Repairs per house', help: 'Default for every house. Override it on a house once you know more.', unit: '$', step: 1000, get: b => b.default_rehab, set: (b, v) => { b.default_rehab = v; }, min: 0 },
+    { key: 'closing', label: 'Closing costs', help: 'Flat amount per purchase.', unit: '$', step: 500, get: b => b.closing_costs, set: (b, v) => { b.closing_costs = v; }, min: 0 }
+  ]},
+  { title: 'Financing', fields: [
+    { key: 'down', label: 'Down payment', unit: '%', step: 1, get: b => b.financing.down_pct * 100, set: (b, v) => { b.financing.down_pct = +(v / 100).toFixed(6); }, min: 0, max: 95 },
+    { key: 'rate', label: 'Interest rate', unit: '%', step: 0.125, get: b => b.financing.rate * 100, set: (b, v) => { b.financing.rate = +(v / 100).toFixed(6); }, min: 0, max: 30 },
+    { key: 'years', label: 'Loan term', unit: 'yrs', step: 5, get: b => b.financing.years, set: (b, v) => { b.financing.years = v; }, min: 1, max: 50 }
+  ]},
+  { title: 'Monthly costs', fields: [
+    { key: 'tax', label: 'Property tax', unit: '$', step: 10, get: b => b.monthly_costs.tax, set: (b, v) => { b.monthly_costs.tax = v; }, min: 0 },
+    { key: 'ins', label: 'Insurance', unit: '$', step: 10, get: b => b.monthly_costs.insurance, set: (b, v) => { b.monthly_costs.insurance = v; }, min: 0 },
+    { key: 'res', label: 'Repairs and vacancy set-aside', help: 'Share of rent held back.', unit: '%', step: 1, get: b => b.monthly_costs.reserve_pct_of_rent * 100, set: (b, v) => { b.monthly_costs.reserve_pct_of_rent = +(v / 100).toFixed(6); }, min: 0, max: 60 }
+  ]}
+];
+
+const $ = id => document.getElementById(id);
+const money = n => '$' + Math.round(n).toLocaleString('en-US');
+const title = s => String(s).toLowerCase().replace(/\b[a-z]/g, c => c.toUpperCase());
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const num = (v, f) => +(+v).toFixed(f === undefined ? 4 : f);
+const cid = c => String(c).replace(/[^A-Za-z0-9]/g, '_');
+
+const Store = {
+  mode: 'browser', db: null,
+  async init() {
+    try {
+      if (window.claude && window.claude.use) {
+        const db = await window.claude.use('db');
+        if (db) { this.db = db; this.mode = 'saved'; }
+      }
+    } catch (e) { this.db = null; }
+    const out = { cases: {}, sales: {}, bb: null };
+    if (this.db) {
+      try {
+        out.cases = (await this._get('deal/notes')).cases || {};
+        out.sales = (await this._get('deal/sales')).days || {};
+        out.bb = (await this._get('deal/inputs')).bb || null;
+        return out;
+      } catch (e) { this.db = null; this.mode = 'browser'; }
+    }
+    try { out.cases = JSON.parse(localStorage.getItem('deal-notes') || '{}'); } catch (e) {}
+    try { out.sales = JSON.parse(localStorage.getItem('deal-sales') || '{}'); } catch (e) {}
+    try { out.bb = JSON.parse(localStorage.getItem('deal-inputs') || 'null'); } catch (e) {}
+    return out;
+  },
+  async _get(path) {
+    const snap = await this.db.doc(path).get();
+    const d = snap && typeof snap.data === 'function' ? snap.data() : snap;
+    return d || {};
+  },
+  async _put(path, key, val, lsKey) {
+    try { localStorage.setItem(lsKey, JSON.stringify(val)); } catch (e) {}
+    if (this.db) { try { await this.db.doc(path).set({ [key]: val }); } catch (e) { this.mode = 'browser'; this.db = null; say('Could not save to your account. Kept in this browser only.'); } }
+  },
+  saveCases(cases) { return this._put('deal/notes', 'cases', cases, 'deal-notes'); },
+  saveBB(b) { return this._put('deal/inputs', 'bb', b, 'deal-inputs'); },
+  saveSales(days) { return this._put('deal/sales', 'days', days, 'deal-sales'); }
+};
+function deepMerge(base, over) {
+  if (!over || typeof over !== 'object' || Array.isArray(over)) return over === undefined ? base : over;
+  const out = Array.isArray(base) ? base.slice() : Object.assign({}, base);
+  Object.keys(over).forEach(k => { out[k] = (base && typeof base[k] === 'object' && !Array.isArray(base[k])) ? deepMerge(base[k], over[k]) : over[k]; });
+  return out;
+}
+let lastBB = null, bbTimer = null;
+function queueBB() {
+  const s = JSON.stringify(bb);
+  if (s === lastBB) return;
+  lastBB = s; clearTimeout(bbTimer);
+  bbTimer = setTimeout(() => Store.saveBB(JSON.parse(s)), 800);
+}
+let saveTimer = null;
+function queueSave() { clearTimeout(saveTimer); saveTimer = setTimeout(() => Store.saveCases(mineState), 600); }
+
+function buildInputs() {
+  const host = $('groups');
+  host.innerHTML = '';
+  GROUPS.forEach(g => {
+    const wrap = document.createElement('div');
+    wrap.className = 'group';
+    wrap.innerHTML = '<h2>' + esc(g.title) + '</h2>';
+    g.fields.forEach(f => {
+      const row = document.createElement('div');
+      row.className = 'field';
+      const id = 'f-' + f.key;
+      const pre = f.unit === '$' ? '<span>$</span>' : '';
+      const post = f.unit !== '$' ? '<span>' + f.unit + '</span>' : '';
+      row.innerHTML = '<label for="' + id + '">' + esc(f.label) + '</label>' +
+        '<div class="inp" id="w-' + id + '">' + pre + '<input id="' + id + '" type="number" inputmode="decimal" step="' + f.step + '" min="' + f.min + '"' + (f.max != null ? ' max="' + f.max + '"' : '') + '>' + post + '</div>' +
+        (f.help ? '<div class="help">' + esc(f.help) + '</div>' : '');
+      wrap.appendChild(row);
+    });
+    host.appendChild(wrap);
+  });
+  const towns = $('towns');
+  towns.innerHTML = '';
+  Object.keys(DEFAULTS.conservative_rent_3br).forEach(c => {
+    const id = 't-' + cid(c);
+    const d = document.createElement('div');
+    d.className = 'town';
+    const ph = (RENT_SOURCE[c] || '').indexOf('placeholder') === 0;
+    d.innerHTML = '<input type="checkbox" id="' + id + '-on" aria-label="Include ' + esc(title(c)) + '">' +
+      '<label for="' + id + '">' + esc(title(c)) + '</label>' +
+      '<div class="inp" id="w-' + id + '"><span>$</span><input id="' + id + '" type="number" inputmode="decimal" step="25" min="0"><span>/mo</span></div>' +
+      '<div class="tag' + (ph ? ' ph' : '') + '">' + esc(RENT_SOURCE[c] || '') + '</div>';
+    towns.appendChild(d);
+  });
+}
+
+function syncInputs() {
+  GROUPS.forEach(g => g.fields.forEach(f => {
+    const el = $('f-' + f.key);
+    if (document.activeElement !== el) el.value = num(f.get(bb));
+    $('w-f-' + f.key).classList.toggle('changed', num(f.get(bb)) !== num(f.get(DEFAULTS)));
+  }));
+  Object.keys(DEFAULTS.conservative_rent_3br).forEach(c => {
+    const id = 't-' + cid(c);
+    const el = $(id);
+    if (document.activeElement !== el) el.value = num(bb.conservative_rent_3br[c]);
+    $(id + '-on').checked = bb.areas.includes(c);
+    $('w-' + id).classList.toggle('changed', bb.conservative_rent_3br[c] !== DEFAULTS.conservative_rent_3br[c]);
+  });
+}
+
+function validate(b) {
+  if (!(b.dscr_target > 0)) return 'Rent coverage target must be above 0.';
+  if (!(b.financing.years >= 1)) return 'Loan term must be at least 1 year.';
+  if (!(b.financing.down_pct >= 0 && b.financing.down_pct < 1)) return 'Down payment must be between 0% and 95%.';
+  if (!(b.financing.rate >= 0)) return 'Interest rate cannot be negative.';
+  const nonneg = [b.max_all_in, b.min_price, b.default_rehab, b.closing_costs, b.monthly_costs.tax, b.monthly_costs.insurance, b.monthly_costs.reserve_pct_of_rent].concat(Object.values(b.conservative_rent_3br));
+  if (nonneg.some(v => !(v >= 0))) return 'Costs and rents must be numbers of 0 or more.';
+  return null;
+}
+
+function staleNote() {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(newestCapture() || '');
+  if (!m) return '';
+  const age = -daysUntil(m[0]);
+  return age > 7 ? 'These listings were pasted ' + age + ' days ago. Sales change, so paste a fresh copy. ' : '';
+}
+function saleUrl(iso) {
+  if (!iso) return null;
+  const p = iso.split('-');
+  return 'https://cuyahoga.sheriffsaleauction.ohio.gov/index.cfm?zaction=AUCTION&Zmethod=PREVIEW&AuctionDate=' + p[1] + '/' + p[2] + '/' + p[0];
+}
+function daysUntil(iso) {
+  if (!iso) return null;
+  const p = iso.split('-').map(Number);
+  const d = new Date(p[0], p[1] - 1, p[2]);
+  const t = new Date(); t.setHours(0, 0, 0, 0);
+  return Math.round((d - t) / 86400000);
+}
+function dateLabel(iso) {
+  if (!iso) return 'Date not listed';
+  const p = iso.split('-').map(Number);
+  return new Date(p[0], p[1] - 1, p[2]).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+}
+function whenLabel(n) { return n === null ? '' : n === 0 ? 'today' : n === 1 ? 'tomorrow' : n < 0 ? Math.abs(n) + ' days ago' : 'in ' + n + ' days'; }
+
+const NUMF = ['rent', 'rehab', 'tax', 'ins', 'down', 'rate', 'closing', 'dscr'];
+const WI = [
+  ['rent', 'Rent / month', '$', 25], ['rehab', 'Repairs', '$', 1000], ['tax', 'Property tax / month', '$', 10], ['ins', 'Insurance / month', '$', 10],
+  ['down', 'Down payment', '%', 1], ['rate', 'Interest rate', '%', 0.125], ['closing', 'Closing costs', '$', 500], ['dscr', 'Rent coverage', 'x', 0.05]
+];
+let openSet = {};
+function stockFor(r) {
+  return { rent: r.stockRent != null ? r.stockRent : (bb.conservative_rent_3br[r.l.city] || 0), rehab: bb.default_rehab, tax: bb.monthly_costs.tax, ins: bb.monthly_costs.insurance,
+    down: num(bb.financing.down_pct * 100), rate: num(bb.financing.rate * 100), closing: bb.closing_costs, dscr: bb.dscr_target };
+}
+function keyOf(l) { return l.case_no || l.id; }
+function overrides() {
+  const o = {};
+  Object.keys(mineState).forEach(k => {
+    const s = mineState[k], x = {};
+    NUMF.forEach(f => { if (typeof s[f] === 'number') x[f] = s[f]; });
+    if (Object.keys(x).length) o[k] = x;
+  });
+  return o;
+}
+function whatIf(r, id, s) {
+  const stock = stockFor(r), k = esc(keyOf(r.l));
+  const n = NUMF.filter(f => typeof s[f] === 'number').length;
+  const cells = WI.map(w => {
+    const f = w[0], v = typeof s[f] === 'number' ? s[f] : stock[f], ch = typeof s[f] === 'number';
+    const pre = w[2] === '$' ? '<span>$</span>' : '', post = w[2] !== '$' ? '<span>' + w[2] + '</span>' : '';
+    return '<div><label for="wi-' + id + '-' + f + '">' + w[1] + '</label><div class="inp' + (ch ? ' changed' : '') + '">' + pre + '<input id="wi-' + id + '-' + f + '" data-k="' + k + '" data-f="' + f + '" type="number" inputmode="decimal" step="' + w[3] + '" min="0" value="' + num(v) + '">' + post + '</div></div>';
+  }).join('');
+  return '<details class="wi" data-id="' + id + '"' + (openSet[id] ? ' open' : '') + '><summary>What if: change rent, repairs, taxes, rate' + (n ? ' (' + n + ' changed)' : '') + '</summary>' +
+    '<div class="wigrid">' + cells + '</div><div class="btns"><button data-reset="' + k + '">Back to stock numbers for this house</button></div></details>';
+}
+function mineBlock(r, id, s) {
+  const k = esc(keyOf(r.l));
+  const stOpts = STATUSES.map(x => '<option' + ((s.status || 'New') === x ? ' selected' : '') + '>' + x + '</option>').join('');
+  return '<div class="mine"><div><label for="st-' + id + '">Status</label><select id="st-' + id + '" data-k="' + k + '" data-f="status">' + stOpts + '</select></div>' +
+    '<div class="wide"><label for="nt-' + id + '">Notes</label><textarea id="nt-' + id + '" data-k="' + k + '" data-f="note" rows="1" placeholder="Title, occupancy, who you called">' + esc(s.note || '') + '</textarea></div></div>' + whatIf(r, id, s);
+}
+
+function card(r) {
+  const l = r.l, out = !bb.areas.includes(l.city), id = cid(keyOf(l)), s = mineState[keyOf(l)] || {};
+  const room = r.headroom == null ? '' : (r.headroom < 0 ? '<span class="neg">' + money(-r.headroom) + ' short of the opening bid</span>' : '<span class="' + (r.headroom < 10000 ? 'thin' : 'pos') + '">' + money(r.headroom) + ' above the opening bid</span>');
+  const big = r.maxBid == null ? '<div class="num" style="font-size:16px;font-weight:500;color:var(--muted)">not screened</div>' : '<div class="num ' + r.verdict + '">' + money(r.maxBid) + '</div>';
+  return '<div class="card' + (out ? ' out' : '') + '">' +
+    '<div class="top"><div><div class="addr"><span class="pill ' + r.verdict + '">' + title(r.verdict) + '</span>' + esc(title(l.address)) + '</div>' +
+    '<div class="meta">' + esc(title(l.city)) + ' ' + esc(l.zip5 || '') + ' · appraised ' + (l.appraised ? money(l.appraised) : 'n/a') + ' · ' + esc(l.case_no) + (saleUrl(l.sale_date) ? ' · <a href="' + saleUrl(l.sale_date) + '" target="_blank" rel="noopener noreferrer">Open this sale day on the auction site ↗</a>' : '') + '</div></div>' +
+    '<div class="big"><div class="lab">Max allowable bid</div>' + big + '</div></div>' +
+    '<div class="facts"><span>Opening bid <b>' + (l.opening_bid ? money(l.opening_bid) : '$0') + '</b></span>' + (room ? '<span>' + room + '</span>' : '') +
+    (r.rent != null ? '<span>Rent used <b>' + money(r.rent) + '</b></span>' : '') + (r.rehab != null ? '<span>Repairs <b>' + money(r.rehab) + '</b></span>' : '') +
+    (r.rentNeeded != null && isFinite(r.rentNeeded) ? '<span>Rent needed at opening bid <b>' + money(r.rentNeeded) + '</b></span>' : '') + '</div>' +
+    '<div class="meta" style="margin-top:4px">' + esc(r.reasons[0] || '') + '</div>' + mineBlock(r, id, s) + '</div>';
+}
+
+function preCard(r) {
+  const l = r.l, id = cid(keyOf(l)), s = mineState[keyOf(l)] || {};
+  const big = r.maxBid == null ? '<div class="num" style="font-size:16px;font-weight:500;color:var(--muted)">not screened</div>' : '<div class="num ' + r.verdict + '">' + money(r.maxBid) + '</div>';
+  const disc = r.discount == null ? '' : '<span>Needs a price <b class="' + (r.verdict === 'PASS' ? 'pos' : r.verdict === 'REVIEW' ? 'thin' : 'neg') + '">' + (r.discount <= 0 ? 'at or under' : Math.round(r.discount * 100) + '% below') + '</b> the estimated value</span>';
+  return '<div class="card">' +
+    '<div class="top"><div><div class="addr"><span class="pill ' + r.verdict + '">' + title(r.verdict) + '</span>' + esc(title(l.address)) + '</div>' +
+    '<div class="meta">' + esc(title(l.city)) + ' ' + esc(l.zip5 || '') + ' · ' + l.beds + ' bd / ' + l.baths + ' ba · ' + (l.sqft ? l.sqft.toLocaleString('en-US') + ' sqft' : '') + ' · owner still owns it, no sale date</div></div>' +
+    '<div class="big"><div class="lab">Most you can pay</div>' + big + '</div></div>' +
+    '<div class="facts"><span>Estimated value <b>' + (l.est_value ? money(l.est_value) : 'n/a') + '</b></span>' + disc +
+    (r.rent != null ? '<span>Rent used <b>' + money(r.rent) + '</b></span>' : '') + (r.rehab != null ? '<span>Repairs <b>' + money(r.rehab) + '</b></span>' : '') + '</div>' +
+    '<div class="meta" style="margin-top:4px">' + esc(r.reasons[0] || '') + '</div>' + mineBlock(r, id, s) + '</div>';
+}
+
+function render() {
+  const err = validate(bb);
+  $('err').textContent = err || '';
+  if (err) return;
+  if (lastBB !== null) queueBB();
+  const focusId = document.activeElement && document.activeElement.id;
+  const mode = $('mode').value, pre = mode === 'pre';
+  $('winwrap').hidden = pre;
+  const order = { PASS: 0, REVIEW: 1, FAIL: 2 };
+  let mine, shown, all, inWin, widened = false, html = '';
+  if (!pre) {
+    const win = +$('win').value;
+    all = screenAll(LISTINGS, bb, overrides());
+    const dead = all.filter(r => r.l.status !== 'ACTIVE').length;
+    all = all.filter(r => r.l.status === 'ACTIVE');
+    deadCount = dead;
+    inWin = all.filter(r => { const n = daysUntil(r.l.sale_date); return win >= 9999 || n === null || (n >= 0 && n <= win); });
+    if (!inWin.length && all.length) { inWin = all; widened = true; }
+  } else {
+    all = PRE.listings.map(l => screenPre(l, bb, overrides()[keyOf(l)])).sort((a, b) => order[a.verdict] - order[b.verdict] || (a.discount == null ? 9 : a.discount) - (b.discount == null ? 9 : b.discount));
+    inWin = all;
+  }
+  mine = inWin.filter(r => bb.areas.includes(r.l.city));
+  const count = v => mine.filter(r => r.verdict === v).length;
+  $('tiles').innerHTML =
+    '<div class="tile"><div class="k">In your towns</div><div class="v">' + mine.length + '</div></div>' +
+    '<div class="tile pass"><div class="k">Pass</div><div class="v">' + count('PASS') + '</div></div>' +
+    '<div class="tile rev"><div class="k">Review</div><div class="v">' + count('REVIEW') + '</div></div>' +
+    '<div class="tile fail"><div class="k">Fail</div><div class="v">' + count('FAIL') + '</div></div>';
+  $('sub').textContent = pre
+    ? (PRE.listings.length ? 'Pre-foreclosure list captured ' + PRE.captured + '. ' : '') + 'These owners have been filed against but the house has not gone to auction. Nothing here is for sale yet; you would have to reach the owner.'
+    : 'Listings last pasted ' + newestCapture() + '. ' + staleNote() + (deadCount ? deadCount + ' postponed or cancelled sales are hidden. ' : '') + (widened ? 'No sales fall in the chosen window, so all captured sales are shown. ' : '') + 'Change an input and every max allowable bid updates.';
+  const outside = inWin.length - mine.length;
+  $('showlabel').textContent = 'Also show the ' + outside + ' listings outside my towns';
+  $('foot').innerHTML = pre
+    ? '<b>Most you can pay</b> is the same rental test as the auction side: the most that still gets you your rent coverage after repairs and closing costs, capped at your spending limit. <b>Estimated value</b> is a website estimate, not a price anyone has agreed to. The discount shows how far below that estimate the owner would have to sell. Rent is scaled from the 3-bedroom number by bedroom count using placeholder factors. Condition, liens, back taxes and whether the owner will sell are not checked.'
+    : '<b>Max allowable bid</b> is the most you can bid and still have rent cover your target (default 1.2x of monthly costs), after repairs and closing costs. It uses the rental test, not a flip profit. The opening bid is only the starting price; sales usually close higher, so the number to watch is the max allowable bid. Bedrooms, condition, title and back taxes are not checked.';
+  shown = $('showall').checked ? inWin : mine;
+  if (pre) {
+    const groups = {};
+    shown.forEach(r => { (groups[r.l.city] = groups[r.l.city] || []).push(r); });
+    html = Object.keys(groups).sort().map(k => { const rs = groups[k]; return '<div class="sale"><span class="d">' + esc(title(k)) + '</span><span class="c">' + rs.length + ' listings · ' + rs.filter(r => r.verdict === 'PASS').length + ' pass · ' + rs.filter(r => r.verdict === 'REVIEW').length + ' review</span></div>' + rs.map(preCard).join(''); }).join('');
+  } else {
+    const groups = {};
+    shown.forEach(r => { const k = r.l.sale_date || ''; (groups[k] = groups[k] || []).push(r); });
+    html = Object.keys(groups).sort().map(k => {
+      const rs = groups[k].sort((a, b) => order[a.verdict] - order[b.verdict] || (b.headroom == null ? -1e12 : b.headroom) - (a.headroom == null ? -1e12 : a.headroom));
+      return '<div class="sale"><span class="d">' + esc(dateLabel(k)) + '</span><span class="c">' + esc(whenLabel(daysUntil(k))) + ' · ' + rs.length + ' listings · ' + rs.filter(r => r.verdict === 'PASS').length + ' pass · ' + rs.filter(r => r.verdict === 'REVIEW').length + ' review</span></div>' + rs.map(card).join('');
+    }).join('');
+  }
+  if (pre && !PRE.listings.length) html = '<div class="empty">No pre-foreclosure source is connected right now. The first one I tried is parked. This view fills in once a source is chosen.</div>';
+  $('list').innerHTML = html || '<div class="empty">Nothing in your towns for this view.</div>';
+  $('json').value = JSON.stringify(bb, null, 2) + '\n';
+  renderDays();
+  if (focusId) { const el = $(focusId); if (el) el.focus(); }
+}
+
+
+function grabber() {
+  (async () => {
+    const sleep = ms => new Promise(r => setTimeout(r, ms));
+    const pages = [document.body.innerText];
+    for (let i = 0; i < 12; i++) {
+      const n = document.querySelector('.PageRight');
+      if (!n || n.offsetParent === null) break;
+      const before = document.body.innerText;
+      n.click(); await sleep(2500);
+      const after = document.body.innerText;
+      if (after === before) break;
+      pages.push(after);
+    }
+    const t = pages.join('\n');
+    const d = document.createElement('div');
+    d.style.cssText = 'position:fixed;z-index:99999;top:10px;right:10px;width:420px;background:#fff;color:#000;border:2px solid #1f5c4d;padding:12px;font:14px sans-serif;box-shadow:0 4px 20px #0005';
+    d.textContent = 'Sale page captured (' + pages.length + ' pages). Click Copy, then paste it into Deal Screen.';
+    const ta = document.createElement('textarea');
+    ta.style.cssText = 'display:block;width:100%;height:80px;margin:8px 0';
+    ta.value = t;
+    const bt = document.createElement('button');
+    bt.textContent = 'Copy';
+    bt.onclick = async () => { try { await navigator.clipboard.writeText(t); } catch (e) { ta.select(); document.execCommand('copy'); } bt.textContent = 'Copied'; };
+    const x = document.createElement('button');
+    x.textContent = 'Close'; x.style.marginLeft = '8px'; x.onclick = () => d.remove();
+    d.append(ta, bt, x); document.body.append(d); ta.select();
+  })();
+}
+const BM = 'javascript:' + encodeURIComponent('(' + grabber.toString() + ')()');
+function todayIso() { const d = new Date(); return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()); }
+function rebuildListings() {
+  const days = Object.keys(SALES).sort();
+  if (!days.length) { LISTINGS = SEED; return; }
+  const all = [];
+  days.forEach(d => SALES[d].listings.forEach(l => all.push(l)));
+  LISTINGS = dedupeListings(all);
+}
+function newestCapture() {
+  const c = Object.keys(SALES).map(d => SALES[d].captured).filter(Boolean).sort();
+  return c.length ? c[c.length - 1] : META.captured;
+}
+function msg(t) { $('addmsg').textContent = t; }
+function addPaste() {
+  const r = parseListings($('paste').value || '');
+  if (!r.listings.length) { msg('I did not find any listings in that text. Make sure the bookmark ran on a sale day preview page, and paste everything it copied.'); return; }
+  let day = r.pageDay;
+  if (!day) {
+    const cnt = {};
+    r.listings.forEach(l => { if (l.sale_date) cnt[l.sale_date] = (cnt[l.sale_date] || 0) + 1; });
+    day = Object.keys(cnt).sort((a, b) => cnt[b] - cnt[a])[0];
+  }
+  if (!day) { msg('I found listings but no sale date. Paste the whole page text, including the line with the date.'); return; }
+  const live = r.listings.filter(l => l.status === 'ACTIVE').length;
+  SALES[day] = { captured: todayIso(), listings: r.listings };
+  Store.saveSales(SALES);
+  rebuildListings(); $('paste').value = '';
+  msg('Added ' + dateLabel(day) + ': ' + live + ' live listings, ' + (r.listings.length - live) + ' postponed or cancelled.');
+  render();
+}
+function renderDays() {
+  const days = Object.keys(SALES).sort();
+  $('days').innerHTML = days.length
+    ? days.map(d => { const ls = SALES[d].listings, live = ls.filter(l => l.status === 'ACTIVE').length;
+        return '<div class="day"><span><b>' + esc(dateLabel(d)) + '</b> · ' + live + ' live · pasted ' + esc(SALES[d].captured || '') + '</span><button data-rm="' + esc(d) + '">Remove</button></div>'; }).join('')
+    : '<p class="note" style="margin:0 0 8px">' + (SEED.length ? 'Showing a starter sample (the 11/30 sale). Add a sale day below to replace it with your own.' : 'No sale days yet. Add one below.') + '</p>';
+  $('adddet').open = !days.length || $('adddet').open;
+}
+
+function stockForKey(k, f) {
+  const l = LISTINGS.find(x => x.case_no === k) || PRE.listings.find(x => x.id === k);
+  if (!l) return null;
+  const r = l.id ? screenPre(l, bb) : { l, stockRent: null };
+  return stockFor(r)[f];
+}
+
+function bindInputs() {
+  GROUPS.forEach(g => g.fields.forEach(f => {
+    const el = $('f-' + f.key);
+    el.addEventListener('input', () => {
+      const v = parseFloat(el.value);
+      const ok = !isNaN(v) && v >= f.min && (f.max == null || v <= f.max) && !(f.key === 'dscr' && v <= 0) && !(f.key === 'years' && v < 1);
+      $('w-f-' + f.key).classList.toggle('bad', !ok);
+      if (!ok) { $('err').textContent = f.label + ': enter a number' + (f.max != null ? ' from ' + f.min + ' to ' + f.max : ' of ' + f.min + ' or more') + '.'; return; }
+      f.set(bb, v); syncInputs(); render();
+    });
+  }));
+  Object.keys(DEFAULTS.conservative_rent_3br).forEach(c => {
+    const id = 't-' + cid(c);
+    $(id).addEventListener('input', () => {
+      const v = parseFloat($(id).value);
+      const ok = !isNaN(v) && v >= 0;
+      $('w-' + id).classList.toggle('bad', !ok);
+      if (!ok) { $('err').textContent = title(c) + ' rent: enter a number of 0 or more.'; return; }
+      bb.conservative_rent_3br[c] = v; syncInputs(); render();
+    });
+    $(id + '-on').addEventListener('change', e => {
+      bb.areas = bb.areas.filter(a => a !== c);
+      if (e.target.checked) bb.areas.push(c);
+      render();
+    });
+  });
+  $('showall').addEventListener('change', render);
+  $('win').addEventListener('change', render);
+  $('mode').addEventListener('change', render);
+  $('addbtn').addEventListener('click', addPaste);
+  $('copybm').addEventListener('click', async () => { try { await navigator.clipboard.writeText(BM); say('Bookmark code copied.'); } catch (e) { $('paste').value = BM; say('Copy was blocked. The code is in the box above; select it and copy it.'); } });
+  $('copydata').addEventListener('click', async () => {
+    const txt = JSON.stringify({ app: 'deal-screen', sales: SALES, cases: mineState, bb });
+    try { await navigator.clipboard.writeText(txt); say('Copied your data. Paste it somewhere safe.'); } catch (e) { $('paste').value = txt; say('Copy was blocked. Your data is in the box above; select it and copy it.'); }
+  });
+  $('loaddata').addEventListener('click', () => {
+    try {
+      const o = JSON.parse($('paste').value);
+      if (o.app !== 'deal-screen') throw new Error('not mine');
+      SALES = o.sales || {}; mineState = o.cases || {};
+      if (o.bb) { const m = deepMerge(DEFAULTS, o.bb); if (!validate(m)) bb = m; }
+      Store.saveSales(SALES); Store.saveCases(mineState); Store.saveBB(bb);
+      $('paste').value = ''; rebuildListings(); syncInputs(); render(); msg('Loaded your data.');
+    } catch (e) { msg('That text is not a copy of your data. Use Copy my data first, then paste all of it.'); }
+  });
+  $('bmlink').setAttribute('href', BM);
+  $('bmlink').addEventListener('click', e => { e.preventDefault(); say('Drag this link to your bookmarks bar, do not click it here.'); });
+  $('days').addEventListener('click', e => { const d = e.target.dataset && e.target.dataset.rm; if (!d) return; delete SALES[d]; Store.saveSales(SALES); rebuildListings(); render(); });
+  $('list').addEventListener('input', e => {
+    const t = e.target, k = t.dataset && t.dataset.k, f = t.dataset && t.dataset.f;
+    if (!k || !f) return;
+    const s = mineState[k] = mineState[k] || {};
+    if (NUMF.indexOf(f) >= 0) {
+      const v = parseFloat(t.value);
+      const rowStock = stockForKey(k, f);
+      if (t.value === '' || isNaN(v) || v < 0 || (rowStock != null && num(v) === num(rowStock))) delete s[f]; else s[f] = v;
+      queueSave(); render();
+    } else { s[f] = t.value; queueSave(); }
+  });
+  $('list').addEventListener('change', e => {
+    const t = e.target;
+    if (t.dataset && t.dataset.f === 'status') { (mineState[t.dataset.k] = mineState[t.dataset.k] || {}).status = t.value; queueSave(); }
+  });
+  $('list').addEventListener('click', e => {
+    const k = e.target.dataset && e.target.dataset.reset;
+    if (!k) return;
+    const s = mineState[k] || {}; NUMF.forEach(f => delete s[f]); queueSave(); render();
+  });
+  $('list').addEventListener('toggle', e => { const d = e.target; if (d.classList && d.classList.contains('wi')) openSet[d.dataset.id] = d.open; }, true);
+  $('reset').addEventListener('click', () => { bb = JSON.parse(JSON.stringify(DEFAULTS)); syncInputs(); render(); say('Back to the starting inputs. Your per-house numbers and notes are kept.'); });
+  $('copy').addEventListener('click', async () => {
+    try { await navigator.clipboard.writeText($('json').value); say('Copied. Paste it over buybox.json.'); }
+    catch (e) { $('json').closest('details').open = true; $('json').select(); say('Copy was blocked. Select the text below and copy it.'); }
+  });
+}
+
+function say(t) { $('status').textContent = t; }
+
+let dl = null;
+async function downloadZip() {
+  if (validate(bb)) { say('Fix the highlighted input first.'); return; }
+  say('Building the zip...');
+  try {
+    const zip = new JSZip();
+    Object.keys(FILES).forEach(p => zip.file('dealfinder/' + p, FILES[p]));
+    zip.file('dealfinder/buybox.json', JSON.stringify(bb, null, 2) + '\n');
+    const blob = await zip.generateAsync({ type: 'blob' });
+    try { await dl.save({ filename: 'dealfinder.zip', data: blob }); }
+    catch (e1) { await dl.save({ filename: 'dealfinder.zip', data: new Uint8Array(await blob.arrayBuffer()) }); }
+    say('Saved dealfinder.zip with your current inputs.');
+  } catch (e) {
+    say('The download did not go through. Use Copy buybox.json, or ask Claude to send the files.');
+  }
+}
+
+buildInputs(); bindInputs(); syncInputs(); render();
+Store.init().then(st => { mineState = st.cases || {}; SALES = st.sales || {}; if (st.bb) { const m = deepMerge(DEFAULTS, st.bb); if (!validate(m)) bb = m; } lastBB = JSON.stringify(bb); syncInputs(); rebuildListings(); render(); say(Store.mode === 'saved' ? 'Your sale days and notes save to your account.' : 'Your sale days and notes save in this browser.'); });
+if (Object.keys(FILES).length && window.claude && window.claude.use) {
+  window.claude.use('downloads').then(d => { if (d && typeof JSZip !== 'undefined') { dl = d; $('dl').hidden = false; $('dl').addEventListener('click', downloadZip); } }).catch(() => {});
+}
+</script>
+</body>
+</html>
