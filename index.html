@@ -10,22 +10,22 @@
 <style>
 :root {
   /* layout: inputs rail on the left, sale-date groups of property cards on the right; stacks under 900px */
-  --bg: #f6f5f1; --panel: #ffffff; --ink: #1d2320; --muted: #5d665f; --line: #dcd9d0;
-  --accent: #1f5c4d; --accent-ink: #ffffff; --changed: #b4690e;
+  --bg: #eef4fc; --panel: #ffffff; --ink: #0f2742; --muted: #52688a; --line: #d3e0f2;
+  --accent: #1d5fd1; --accent-ink: #ffffff; --changed: #b4690e;
   --pass-bg: #e3f1e6; --pass-ink: #1b5e2f; --rev-bg: #fbefd2; --rev-ink: #7a4d00; --fail-bg: #f8e1de; --fail-ink: #8c2a21;
   --font: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #141816; --panel: #1c211f; --ink: #e8ece9; --muted: #9aa59d; --line: #2e3531;
-    --accent: #5fc2a6; --accent-ink: #0f1a16; --changed: #e0a24a;
+    --bg: #0c1a2e; --panel: #12243d; --ink: #eaf1fb; --muted: #9db3d1; --line: #25405f;
+    --accent: #6aa8ff; --accent-ink: #08162a; --changed: #e0a24a;
     --pass-bg: #1d3a28; --pass-ink: #9fdcb0; --rev-bg: #3d3216; --rev-ink: #f0cd7c; --fail-bg: #43211e; --fail-ink: #f0a79f;
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
-  --bg: #141816; --panel: #1c211f; --ink: #e8ece9; --muted: #9aa59d; --line: #2e3531;
-  --accent: #5fc2a6; --accent-ink: #0f1a16; --changed: #e0a24a;
+  --bg: #0c1a2e; --panel: #12243d; --ink: #eaf1fb; --muted: #9db3d1; --line: #25405f;
+  --accent: #6aa8ff; --accent-ink: #08162a; --changed: #e0a24a;
   --pass-bg: #1d3a28; --pass-ink: #9fdcb0; --rev-bg: #3d3216; --rev-ink: #f0cd7c; --fail-bg: #43211e; --fail-ink: #f0a79f;
   color-scheme: dark;
 }
@@ -651,7 +651,7 @@ function grabber() {
     }
     const t = pages.join('\n');
     const d = document.createElement('div');
-    d.style.cssText = 'position:fixed;z-index:99999;top:10px;right:10px;width:420px;background:#fff;color:#000;border:2px solid #1f5c4d;padding:12px;font:14px sans-serif;box-shadow:0 4px 20px #0005';
+    d.style.cssText = 'position:fixed;z-index:99999;top:10px;right:10px;width:420px;background:#fff;color:#000;border:2px solid #1d5fd1;padding:12px;font:14px sans-serif;box-shadow:0 4px 20px #0005';
     d.textContent = 'Sale page captured (' + pages.length + ' pages). Click Copy, then paste it into Deal Screen.';
     const ta = document.createElement('textarea');
     ta.style.cssText = 'display:block;width:100%;height:80px;margin:8px 0';
